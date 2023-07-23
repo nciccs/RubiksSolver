@@ -1,48 +1,95 @@
 class RCFSolver
 {
+  static moveLabels = [
+                        "U", "U'", 
+                        "L", "L'", 
+                        "F", "F'", 
+                        "R", "R'", 
+                        "B", "B'", 
+                        "D", "D'"
+                      ];
+
+  static moves = [
+                  [0, true],
+                  [0, false],
+
+                  [1, true],
+                  [1, false],
+
+                  [2, true],
+                  [2, false],
+
+                  [3, true],
+                  [3, false],
+
+                  [4, true],
+                  [4, false],
+
+                  [5, true],
+                  [5, false],
+                ];
+
+  static undoMoves =  [
+                        [0, false],
+                        [0, true],
+
+                        [1, false],
+                        [1, true],
+
+                        [2, false],
+                        [2, true],
+
+                        [3, false],
+                        [3, true],
+
+                        [4, false],
+                        [4, true],
+
+                        [5, false],
+                        [5, true],
+                      ];
+
   constructor()
   {
     this.rubiksCube = null;
     this.rubiksCubeCopy = new RCF();
+    this.rubiksCubeCopy.faceBorder = 1;
   }
 
-  //Testing
-  solve2(rubiksCube)
+  static getMoveIndex(faceIndex, clockwise)
   {
-    let goal = [];
+    return faceIndex * 2 + (clockwise ? 0 : 1);
+  }
 
-    this.rubiksCubeCopy.resetStickers();
-
-    for(let i = 0; i < this.rubiksCubeCopy.stickers.length; i++)
+  static applyMoves(cube, moves)
+  {
+    for(let i = 0; moves && i < moves.length; i++)
     {
-      for(let j = 0; j < this.rubiksCubeCopy.stickers[i].length; j++)
-      {
-        goal.push([i, j, this.rubiksCubeCopy.stickers[i][j]]);
-      }
+      RCFSolver.move(cube, moves[i]);
     }
+  } 
 
-    //console.table(goal);
-    RCF.copyStickers(rubiksCube, this.rubiksCubeCopy);
-    
-    let resultStages = [];
-    //4 moves still good performance
-    //3 is almost instant
-    let arr = [];
-    let result = this.bfs(this.rubiksCubeCopy, goal, 4, arr);
-    console.table(arr);
-    //6 moves lags like 3 seconds
-    //
-    //let result = this.depthFirstSearch(this.rubiksCubeCopy, goal, 5);
-    //this.depthFirstSearch(this.rubiksCubeCopy, goal, 5);
-    //this.depthFirstSearch(this.rubiksCubeCopy, goal, 5);
-    //this.depthFirstSearch(this.rubiksCubeCopy, goal, 5);
-    
-    
-    this.applyResult(this.rubiksCubeCopy, result);
-    resultStages.push(result);
-    this.outputResultStages(resultStages);
+  static applyUndoMoves(cube, moves)
+  {
+    for(let i = moves.length-1; i >= 0; i--)
+    {
+      RCFSolver.undoMove(cube, moves[i]);
+    }
+  }
 
-    //RCF.copyStickers(this.rubiksCubeCopy, rubiksCube);
+  getMoveIndex(faceIndex, clockwise)
+  {
+    return RCFSolver.getMoveIndex(faceIndex, clockwise);
+  }
+
+  static move(cube, index)
+  {
+    cube.rotate(RCFSolver.moves[index][0], RCFSolver.moves[index][1]);
+  }
+  
+  static undoMove(cube, index)
+  {
+    cube.rotate(RCFSolver.undoMoves[index][0], RCFSolver.undoMoves[index][1]);
   }
 
   solve(rubiksCube)
@@ -54,13 +101,12 @@ class RCFSolver
       //Basically created and used a duplicate cube
       RCF.copyStickers(rubiksCube, this.rubiksCubeCopy);
 
-
       let goal = [];
       let resultStages = [];
 
       //solve top cross
       this.solveTopCross(goal, resultStages);
-      
+
       //solve top corners
       this.solveTopCorners(goal, resultStages);
 
@@ -104,7 +150,7 @@ class RCFSolver
       if(result.length == 0)
         result = RCFSearch.depthFirstSearch(this.rubiksCubeCopy, goal, 5);
 
-      this.rubiksCubeCopy.applyMoves(result);
+      RCFSolver.applyMoves(this.rubiksCubeCopy, result);
       resultStages.push(result);
     }
   }
@@ -156,8 +202,46 @@ class RCFSolver
         goal.push(primaryGoal[i]);
     }
 
-    this.rubiksCubeCopy.applyMoves(result);
+    RCFSolver.applyMoves(this.rubiksCubeCopy, result);
     resultStages.push(result);
+  }
+
+  static getSideFaceMoves(faceIndex, moveLabels, faces=4)
+  {
+    let result = [];
+
+    let topFaceIndex = 0;
+    let LeftFaceIndex = (faceIndex - 1 < 0) ? faces : faceIndex-1;
+    let rightFaceIndex = (faceIndex + 1 > faces) ? 1 : faceIndex+1;
+    let bottomFaceIndex = 5;
+
+    let moves = [
+                  RCFSolver.getMoveIndex(topFaceIndex, true), 
+                  RCFSolver.getMoveIndex(topFaceIndex, false), 
+
+                  RCFSolver.getMoveIndex(LeftFaceIndex, true), 
+                  RCFSolver.getMoveIndex(LeftFaceIndex, false), 
+
+                  RCFSolver.getMoveIndex(faceIndex, true), 
+                  RCFSolver.getMoveIndex(faceIndex, false), 
+
+                  RCFSolver.getMoveIndex(rightFaceIndex, true), 
+                  RCFSolver.getMoveIndex(rightFaceIndex, false), 
+
+                  RCFSolver.getMoveIndex((faceIndex+2) % faces, true), 
+                  RCFSolver.getMoveIndex((faceIndex+2) % faces, false), 
+
+                  RCFSolver.getMoveIndex(bottomFaceIndex, true), 
+                  RCFSolver.getMoveIndex(bottomFaceIndex, false), 
+                ];
+
+    for(let i = 0; i < moveLabels.length; i++)
+    {
+      let moveLableIndex = RCFSolver.moveLabels.indexOf(moveLabels[i].toUpperCase());
+      result.push(moves[moveLableIndex]);
+    }
+
+    return result;
   }
 
   _solveTopCornerSecondaryGoals(goal, primaryGoal, faceIndex)
@@ -185,30 +269,10 @@ class RCFSolver
                                 ];
     let secondaryGoals = [];
 
-    //let goalLeftFaceIndex = (faceIndex - 1 < 0) ? 4 : faceIndex-1;
-    let goalBottomFaceIndex = 5;
-
     let secondaryGoalsMoves = [
-                                [
-                                  rubiksCube.getMoveIndex(goalRightFaceIndex, false),
-                                  rubiksCube.getMoveIndex(goalBottomFaceIndex, false),
-                                  rubiksCube.getMoveIndex(goalRightFaceIndex, true),
-                                ],
-                                [
-                                  rubiksCube.getMoveIndex(goalFrontFaceIndex, true),
-                                  rubiksCube.getMoveIndex(goalBottomFaceIndex, true),
-                                  rubiksCube.getMoveIndex(goalFrontFaceIndex, false),
-                                ],
-                                [
-                                  rubiksCube.getMoveIndex(goalRightFaceIndex, true),
-                                  rubiksCube.getMoveIndex(goalRightFaceIndex, true),
-                                  rubiksCube.getMoveIndex(goalBottomFaceIndex, false),
-                                  rubiksCube.getMoveIndex(goalRightFaceIndex, true),
-                                  rubiksCube.getMoveIndex(goalRightFaceIndex, true),
-                                  rubiksCube.getMoveIndex(goalBottomFaceIndex, true),
-                                  rubiksCube.getMoveIndex(goalRightFaceIndex, true),
-                                  rubiksCube.getMoveIndex(goalRightFaceIndex, true),
-                                ]
+                                RCFSolver.getSideFaceMoves(faceIndex, ["R'", "D'", "R"]),
+                                RCFSolver.getSideFaceMoves(faceIndex, ["F", "D", "F'"]),
+                                RCFSolver.getSideFaceMoves(faceIndex, ["R", "R", "D'", "R", "R", "D", "R", "R"]),
                               ];
 
     for(let i = 0; i < secondaryGoalsColours.length; i++)
@@ -277,7 +341,7 @@ class RCFSolver
         goal.push(primaryGoal[i]);
     }
 
-    this.rubiksCubeCopy.applyMoves(result);
+    RCFSolver.applyMoves(this.rubiksCubeCopy, result);
     resultStages.push(result);
   }
 
@@ -289,49 +353,28 @@ class RCFSolver
     let goalFrontColour = primaryGoal[0][2];
     let goalRightColour = primaryGoal[1][2];
 
+    let relativeRightMoves = ["D'", "R'", "D", "R", "D", "F", "D'", "F'"];
+
     //detect if piece is in middle layer, if so, move piece to bottom
     let edgeCoord = rubiksCube.findEdge(goalFrontColour, goalRightColour, [false, true, true, true, true, false], [false, true, false, false]);
     if(edgeCoord)
     {
       let edgeFrontFaceIndex = Math.floor(edgeCoord[1]/rubiksCube.columns);
-      let edgeRightFaceIndex = (edgeFrontFaceIndex + 1 > 4) ? 1 : edgeFrontFaceIndex+1;
 
-      let edgeBottomFaceIndex = 5;
-  
-      let rightMoves =  [
-                          rubiksCube.getMoveIndex(edgeBottomFaceIndex, false),
-                          rubiksCube.getMoveIndex(edgeRightFaceIndex, false),
-                          rubiksCube.getMoveIndex(edgeBottomFaceIndex, true),
-                          rubiksCube.getMoveIndex(edgeRightFaceIndex, true),
-                          rubiksCube.getMoveIndex(edgeBottomFaceIndex, true),
-                          rubiksCube.getMoveIndex(edgeFrontFaceIndex, true),
-                          rubiksCube.getMoveIndex(edgeBottomFaceIndex, false),
-                          rubiksCube.getMoveIndex(edgeFrontFaceIndex, false),
-                        ];
+      let rightMoves =  RCFSolver.getSideFaceMoves(edgeFrontFaceIndex, relativeRightMoves);
 
       result = result.concat(rightMoves);
     }
 
-    this.rubiksCubeCopy.applyMoves(result);
+    RCFSolver.applyMoves(this.rubiksCubeCopy, result);
     let requiredMoves = this._rotateEdgePieceForMiddle(faceIndex, goal, primaryGoal);
-    this.rubiksCubeCopy.applyUndoMoves(result);
+    RCFSolver.applyUndoMoves(this.rubiksCubeCopy, result);
     result = result.concat(requiredMoves);
 
+    //now that the edge piece is on the bottom, move it to the right place in middle
+    RCFSolver.applyMoves(rubiksCube, result);
 
-    rubiksCube.applyMoves(result);
-    let edgeFrontFaceIndex = faceIndex;
-    let edgeRightFaceIndex = (edgeFrontFaceIndex + 1 > 4) ? 1 : edgeFrontFaceIndex+1;
-    let edgeBottomFaceIndex = 5;
-    let rightMoves =  [
-                        rubiksCube.getMoveIndex(edgeBottomFaceIndex, false),
-                        rubiksCube.getMoveIndex(edgeRightFaceIndex, false),
-                        rubiksCube.getMoveIndex(edgeBottomFaceIndex, true),
-                        rubiksCube.getMoveIndex(edgeRightFaceIndex, true),
-                        rubiksCube.getMoveIndex(edgeBottomFaceIndex, true),
-                        rubiksCube.getMoveIndex(edgeFrontFaceIndex, true),
-                        rubiksCube.getMoveIndex(edgeBottomFaceIndex, false),
-                        rubiksCube.getMoveIndex(edgeFrontFaceIndex, false),
-                      ];
+    let rightMoves =  RCFSolver.getSideFaceMoves(faceIndex, relativeRightMoves);
 
     let edgeFront = [2, faceIndex * rubiksCube.columns + 1];
     let edgeFrontColour = rubiksCube.stickers[edgeFront[0]][edgeFront[1]];
@@ -346,14 +389,14 @@ class RCFSolver
       requiredMoves = requiredMoves.concat(rightMoves);
       requiredMoves = requiredMoves.concat(rightMoves);
 
-      rubiksCube.applyMoves(requiredMoves);
+      RCFSolver.applyMoves(rubiksCube, requiredMoves);
       let foundMoves = this._rotateEdgePieceForMiddle(faceIndex, goal, primaryGoal);
-      rubiksCube.applyUndoMoves(requiredMoves);
+      RCFSolver.applyUndoMoves(rubiksCube, requiredMoves);
       requiredMoves = requiredMoves.concat(foundMoves);
 
       requiredMoves = requiredMoves.concat(rightMoves);
     }
-    rubiksCube.applyUndoMoves(result);
+    RCFSolver.applyUndoMoves(rubiksCube, result);
 
     result = result.concat(requiredMoves);
 
@@ -424,7 +467,7 @@ class RCFSolver
     let labels = [];
     for(let i = 0; result && i < result.length; i++)
     {
-      let label = this.rubiksCubeCopy.moveLabels[result[i]];
+      let label = RCFSolver.moveLabels[result[i]];
       labels.push(capitalised ? label : label.toLowerCase() );
     }
 
@@ -452,8 +495,6 @@ class RCFSolver
     }
     return result;
   }
-
-////////////////////////////////////////////////////////////////////////
 
   findEdge(rubiksCube, stickerRow, stickerColumn)
   {

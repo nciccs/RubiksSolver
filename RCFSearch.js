@@ -27,7 +27,7 @@ class RCFSearch
         cube.stickers = RCF.copy2DArray(rootStickers);
         for(let i = 0; i < nodePath.length; i++)
         {
-          cube.move(nodePath[i]);
+          RCFSolver.move(cube, nodePath[i]);
           path = nodePath;
         }
   
@@ -52,7 +52,7 @@ class RCFSearch
       
       if(path.length < depthLimit)
       {  
-        for(let i = 0; i < cube.moves.length; i++)
+        for(let i = 0; i < RCFSolver.moves.length; i++)
         {
           if(!this._pruneMove(cube, i, path))
           {
@@ -82,18 +82,18 @@ class RCFSearch
       //all moves are tried and haven't reached goal
       if(!reachedGoal)
       {
-        for(let i = 0; i < cube.moves.length; i++)
+        for(let i = 0; i < RCFSolver.moves.length; i++)
         {
           if(!this._pruneMove(cube, i, path))
           {
-            cube.move(i);
+            RCFSolver.move(cube, i);
             result.push(i);
             path.push(i);
 
             reachedGoal = this.reachedGoal(cube, goal);
             if(reachedGoal)
             {
-              cube.undoMove(i);
+              RCFSolver.undoMove(cube, i);
               break;
             }
             else
@@ -102,7 +102,7 @@ class RCFSearch
               if(nextResults.length > 0)
               {
                 result = result.concat(nextResults);
-                cube.undoMove(i);
+                RCFSolver.undoMove(cube, i);
                 break;
               }
               else
@@ -111,7 +111,7 @@ class RCFSearch
                 path.pop();
               }
             }
-            cube.undoMove(i);
+            RCFSolver.undoMove(cube, i);
           }
         }
       }
@@ -139,10 +139,10 @@ class RCFSearch
       //U, D, U'
       //need to check in between, if all moves in between are from opposite face
 
-      let currentMove = cube.moves[moveIndex];
-      let previousUndoMove = cube.undoMoves[path[currentDepth-1]];
+      let currentMove = RCFSolver.moves[moveIndex];
+      let previousUndoMove = RCFSolver.undoMoves[path[currentDepth-1]];
 
-      //if current move (cube.moves) is previous move's opposite (cube.undoMoves)
+      //if current move is previous move's opposite
       if(cube.isSameMove(currentMove, previousUndoMove))
       {
         prune = true;

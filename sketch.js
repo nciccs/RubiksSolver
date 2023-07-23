@@ -1,34 +1,29 @@
-
-var rubiksCube = new RCF();
-var rubiksCubeSolver = new RCFSolver();
+var rubiksCube;
+var rubiksCubeSolver; 
 
 var buttons = [];
 var buttonLabels;
 
 function setup()
 {
-  clear();
   //clears previous console log
+  clear();
+
   createCanvas(400, 400);
+
+  rubiksCube = new RCF();
+  rubiksCubeSolver = new RCFSolver();
 
   rubiksCube.solver = rubiksCubeSolver;
 
   rubiksCubeSolver.rubiksCubeCopy.stickerSize = 9;
-  rubiksCubeSolver.rubiksCubeCopy.topLeftX = 210;
-  rubiksCubeSolver.rubiksCubeCopy.topLeftY = 210;
-  //rubiksCubeSolver.rubiksCubeCopy.hide();
+  rubiksCubeSolver.rubiksCubeCopy.topLeftX = 205;
+  rubiksCubeSolver.rubiksCubeCopy.topLeftY = 205;
 
-  rubiksCube.topLeftX = 20;
-  rubiksCube.topLeftY = 20;
-  //rubiksCube.rotate(0);
-  //rubiksCube.print();
+  rubiksCube.topLeftX = 5;
+  rubiksCube.topLeftY = 5;
 
-  //Need these 14 buttons:
-  //scramble reset
-  //F  R  U  B  L  D
-  //F' R' U' B' L' D'
-
-  buttonLabels = [//"Scramble", "Reset", "Solve",
+  buttonLabels = [
                   "Superflip",
                   "Reset", "Scramble", "Solve",
                      //button arrangement from online simulator is not very good!
@@ -46,8 +41,6 @@ function setup()
   buttons[buttonLabels.indexOf("Scramble")].position(width*0.4, height - buttons[buttonLabels.indexOf("Scramble")].height * 4.5);
   buttons[buttonLabels.indexOf("Solve")].position(width*0.6, height - buttons[buttonLabels.indexOf("Solve")].height * 4.5);
 
-  //buttons[buttonLabels.indexOf("Superflip")].hide();
-  
   let buttonStartX = width * 0.2;
   let buttonStartY = height - buttons[3].height * 3;
   let buttonSpaceX = width * 0.1;
@@ -78,32 +71,53 @@ function setup()
       noLoop();
     });
 
-  buttons[buttonLabels.indexOf("Scramble")].mouseClicked(scramble);
+  buttons[buttonLabels.indexOf("Scramble")].mouseClicked(
+    function()
+    {
+      loop();
+      rubiksCube.scramble();
+      noLoop();
+    });
 
   buttons[buttonLabels.indexOf("Solve")].mouseClicked(solve);
 
-  
-  buttons[buttonLabels.indexOf("F")].mouseClicked(function(){loop();rubiksCube.rotate(2);noLoop();});
-  buttons[buttonLabels.indexOf("R")].mouseClicked(function(){loop();rubiksCube.rotate(3);noLoop();});
-  buttons[buttonLabels.indexOf("U")].mouseClicked(function(){loop();rubiksCube.rotate(0);noLoop();});
-  buttons[buttonLabels.indexOf("B")].mouseClicked(function(){loop();rubiksCube.rotate(4);noLoop();});
-  buttons[buttonLabels.indexOf("L")].mouseClicked(function(){loop();rubiksCube.rotate(1);noLoop();});
-  buttons[buttonLabels.indexOf("D")].mouseClicked(function(){loop();rubiksCube.rotate(5);noLoop();});
+  buttons[buttonLabels.indexOf("F")].mouseClicked(function(){rubiksCube.previousStickers = RCF.copy2DArray(rubiksCube.stickers);rubiksCube.rotate(2);rubiksCube.animateRotation(2);});
+  buttons[buttonLabels.indexOf("R")].mouseClicked(function(){rubiksCube.previousStickers = RCF.copy2DArray(rubiksCube.stickers);rubiksCube.rotate(3);rubiksCube.animateRotation(3);});
+  buttons[buttonLabels.indexOf("U")].mouseClicked(function(){rubiksCube.previousStickers = RCF.copy2DArray(rubiksCube.stickers);rubiksCube.rotate(0);rubiksCube.animateRotation(0);});
+  buttons[buttonLabels.indexOf("B")].mouseClicked(function(){rubiksCube.previousStickers = RCF.copy2DArray(rubiksCube.stickers);rubiksCube.rotate(4);rubiksCube.animateRotation(4);});
+  buttons[buttonLabels.indexOf("L")].mouseClicked(function(){rubiksCube.previousStickers = RCF.copy2DArray(rubiksCube.stickers);rubiksCube.rotate(1);rubiksCube.animateRotation(1);});
+  buttons[buttonLabels.indexOf("D")].mouseClicked(function(){rubiksCube.previousStickers = RCF.copy2DArray(rubiksCube.stickers);rubiksCube.rotate(5);rubiksCube.animateRotation(5);});
 
-  buttons[buttonLabels.indexOf("F'")].mouseClicked(function(){loop();rubiksCube.rotate(2, false);noLoop();});
-  buttons[buttonLabels.indexOf("R'")].mouseClicked(function(){loop();rubiksCube.rotate(3, false);noLoop();});
-  buttons[buttonLabels.indexOf("U'")].mouseClicked(function(){loop();rubiksCube.rotate(0, false);noLoop();});
-  buttons[buttonLabels.indexOf("B'")].mouseClicked(function(){loop();rubiksCube.rotate(4, false);noLoop();});
-  buttons[buttonLabels.indexOf("L'")].mouseClicked(function(){loop();rubiksCube.rotate(1, false);noLoop();});
-  buttons[buttonLabels.indexOf("D'")].mouseClicked(function(){loop();rubiksCube.rotate(5, false);noLoop();});
-  
+  buttons[buttonLabels.indexOf("F'")].mouseClicked(function(){rubiksCube.previousStickers = RCF.copy2DArray(rubiksCube.stickers);rubiksCube.rotate(2, false);rubiksCube.animateRotation(2, false);});
+  buttons[buttonLabels.indexOf("R'")].mouseClicked(function(){rubiksCube.previousStickers = RCF.copy2DArray(rubiksCube.stickers);rubiksCube.rotate(3, false);rubiksCube.animateRotation(3, false);});
+  buttons[buttonLabels.indexOf("U'")].mouseClicked(function(){rubiksCube.previousStickers = RCF.copy2DArray(rubiksCube.stickers);rubiksCube.rotate(0, false);rubiksCube.animateRotation(0, false);});
+  buttons[buttonLabels.indexOf("B'")].mouseClicked(function(){rubiksCube.previousStickers = RCF.copy2DArray(rubiksCube.stickers);rubiksCube.rotate(4, false);rubiksCube.animateRotation(4, false);});
+  buttons[buttonLabels.indexOf("L'")].mouseClicked(function(){rubiksCube.previousStickers = RCF.copy2DArray(rubiksCube.stickers);rubiksCube.rotate(1, false);rubiksCube.animateRotation(1, false);});
+  buttons[buttonLabels.indexOf("D'")].mouseClicked(function(){rubiksCube.previousStickers = RCF.copy2DArray(rubiksCube.stickers);rubiksCube.rotate(5, false);rubiksCube.animateRotation(5, false);});
+
   let coordCheckBox = createCheckbox('Index', false);
   coordCheckBox.position(10, buttons[buttonLabels.indexOf("F")].y);
-  coordCheckBox.changed(function(){loop();rubiksCube.showCoord = rubiksCube.showCoord ? false : true;noLoop();});
+  coordCheckBox.changed(
+                          function()
+                          {
+                            if(!rubiksCube.animating)
+                              loop();
+                            rubiksCube.showCoord = rubiksCube.showCoord ? false : true;
+                            if(!rubiksCube.animating)
+                              noLoop();
+                          });
 
   let labelCheckBox = createCheckbox('Label', false);
   labelCheckBox.position(10, buttons[buttonLabels.indexOf("F'")].y);
-  labelCheckBox.changed(function(){loop();rubiksCube.showLabel = rubiksCube.showLabel ? false : true;noLoop();});
+  labelCheckBox.changed(
+                          function()
+                          {
+                            if(!rubiksCube.animating)
+                              loop();
+                            rubiksCube.showLabel = rubiksCube.showLabel ? false : true;
+                            if(!rubiksCube.animating)
+                              noLoop();
+                          });
 
   noLoop();
 }
@@ -113,21 +127,19 @@ function getRandomInt(max)
   return Math.floor(Math.random() * max);
 }
 
+/*
 function scramble()
 {
   loop();
-  //rubiksCubeSolver.rubiksCubeCopy.hide();
   for(let i = 0; i < 100; i++)
     rubiksCube.rotate(getRandomInt(6));
   noLoop();
-}
-
+}*/
 
 function solve()
 {
   loop();
   buttons[2].hide();
-  //console.clear();
   rubiksCube.solve();
   buttons[2].show();
   rubiksCubeSolver.rubiksCubeCopy.show();
@@ -137,6 +149,7 @@ function solve()
 function draw()
 {
   background(220);
+  noSmooth();
 
   rubiksCube.draw();
   

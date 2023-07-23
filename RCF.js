@@ -6,6 +6,7 @@ class RCF
     this.columns = 3;
     this.faces = 6;
     this.stickers = [];
+    this.faceBorder = 4;
 
     this.faceColours = [
                         "white", 
@@ -83,65 +84,32 @@ class RCF
 
     this.solver = solver;
 
-    //previously this code was too complex, stored data as: function(){cube.rotate(0, true)}
-    this.moves = [
-                  [0, true],
-                  [0, false],
-
-                  [1, true],
-                  [1, false],
-
-                  [2, true],
-                  [2, false],
-
-                  [3, true],
-                  [3, false],
-
-                  [4, true],
-                  [4, false],
-
-                  [5, true],
-                  [5, false],
-                ];
-
-    this.undoMoves =[
-                      [0, false],
-                      [0, true],
-
-                      [1, false],
-                      [1, true],
-
-                      [2, false],
-                      [2, true],
-
-                      [3, false],
-                      [3, true],
-
-                      [4, false],
-                      [4, true],
-
-                      [5, false],
-                      [5, true],
-                    ];
-
-    this.moveLabels = ["U", "U'", 
-                       "L", "L'", 
-                       "F", "F'", 
-                       "R", "R'", 
-                       "B", "B'", 
-                       "D", "D'"];
-
     this.oppositeFaces = [5, 3, 4, 1, 2, 0];
+
+    this.rotateFaceIndex = 0;
+    this.rotationSpeed = 3;
+    this.currentRotation = 0;
+    this.targetRotation = 0;
+    this.animating = false;
+    this.previousStickers;
+
+    this.edgeGraphics = [];
+    for(let i = 0; i < this.faceLinks[0].length/this.rows; i++)
+    {
+      //let edgeGraphicsW = this.stickerSize * this.rows * 3 + this.faceBorder * 4;
+      //this.edgeGraphics.push(createGraphics(width, height));
+      this.edgeGraphics.push(createGraphics(this.stickerSize * this.rows * 3, this.stickerSize));
+    }
+    this.fillEdgeGraphicsBackground('rgba(0, 0 ,0, 0.25)');
+    //this.fillEdgeGraphicsBackground("Purple");
   }
 
-  static getMoveIndex(faceIndex, clockwise)
+  fillEdgeGraphicsBackground(colour)
   {
-    return faceIndex * 2 + (clockwise ? 0 : 1);
-  }
-
-  getMoveIndex(faceIndex, clockwise)
-  {
-    return RCF.getMoveIndex(faceIndex, clockwise);
+    for(let i = 0; i < this.edgeGraphics.length; i++)
+    {
+      this.edgeGraphics[i].background(colour);
+    }
   }
 
   getFaceColour(faceIndex)
@@ -185,6 +153,8 @@ class RCF
     this._superflipSwitchStickers([1, faceIndex * this.columns + 2], this.faceLinks[faceIndex][4]);
     this._superflipSwitchStickers([2, faceIndex * this.columns + 1], this.faceLinks[faceIndex][7]);
     this._superflipSwitchStickers([1, faceIndex * this.columns], this.faceLinks[faceIndex][10]);
+
+    this.previousStickers = RCF.copy2DArray(this.stickers);
   }
 
   _superflipSwitchStickers(coord1, coord2)
@@ -196,6 +166,7 @@ class RCF
 
   resetStickers()
   {
+    this.animating = false;
     for(let i = 0; i < this.rows; i++)
     {
       this.stickers[i] = [];
@@ -210,6 +181,16 @@ class RCF
         this.stickers[i].push(this.faceColours[faceIndex]);
       }
     }
+
+    this.previousStickers = RCF.copy2DArray(this.stickers);
+  }
+
+  scramble()
+  {
+    this.animating = false;
+    for(let i = 0; i < 100; i++)
+      rubiksCube.rotate(getRandomInt(6));
+    this.previousStickers = RCF.copy2DArray(this.stickers);
   }
 
   showFaceLinkEdge(faceIndex)
@@ -282,53 +263,258 @@ class RCF
     this.isHidden = true;
   }
 
+  animateRotation(faceIndex, clockwise=true)
+  {
+    this.rotateFaceIndex = faceIndex;
+    this.currentRotation = 0;
+    this.targetRotation = clockwise ? 90 : -90;
+    this.animating = true;
+    loop();
+  }
+
+  getFaceCoords()
+  {
+    let faceCoords = [];
+
+    let faceBorder = this.faceBorder;
+
+    let faceX = this.topLeftX + faceBorder +this.columns * this.stickerSize;
+    let faceY = this.topLeftY;
+
+    for(let i = 0; i < this.faces; i++)
+    {
+      if(i == 1)
+      {
+        faceX = this.topLeftX;
+        faceY += faceBorder + this.stickerSize * this.rows;
+      }
+      else if(i == 5)
+      {
+        faceX = this.topLeftX + this.columns * this.stickerSize + faceBorder;
+        faceY += this.stickerSize * this.rows + faceBorder;
+      }
+
+      faceCoords.push([faceX, faceY]);
+      faceX += this.stickerSize * this.columns + faceBorder;
+    }
+
+    return faceCoords;
+  }
+
+  indexToCoord(row, col)
+  {
+    let coord = [];
+    //let faceBorder = this.faceBorder;
+
+    let faceCoords = this.getFaceCoords();
+    let faceIndex = Math.floor(col / this.columns);
+    let faceCoord = faceCoords[faceIndex];
+
+    coord.push(faceCoord[0] + col % this.columns * this.stickerSize );
+    coord.push(faceCoord[1] + row % this.columns * this.stickerSize );
+
+    return coord;
+  }
+
+  getFaceLinkColours(faceIndex, stickers)
+  {
+    let colours = [];
+    let faceLink = this.faceLinks[faceIndex];
+    for(let i = 0; i < faceLink.length; i++)
+    {
+      colours.push(stickers[faceLink[i][0]][faceLink[i][1]]);
+    }
+    return colours;
+  }
+
   draw()
   {
     if(!this.isHidden)
     {
-      let faceX = this.topLeftX + this.columns * this.stickerSize;
-      let faceY = this.topLeftY;
+      angleMode(DEGREES);
 
-      this.drawFace(faceX, faceY, 0);
+      let faceBorder = this.faceBorder;
 
-      faceX = this.topLeftX;
-      faceY += this.stickerSize * this.rows;
+      let centreX = faceBorder + this.stickerSize*3/2;
+      let centreY = faceBorder + this.stickerSize*3/2;
 
-      for(let i = 1; i <= 4; i++)
+      let faceCoords = this.getFaceCoords();
+
+      //for(let i = 0; i < this.faces; i++)
+        //this.drawFace(faceCoords[i][0], faceCoords[i][1], i, faceBorder, this.stickers, this.showCoord, this.showLabel);
+
+      if(this.animating)
       {
-        this.drawFace(faceX, faceY, i);
-        faceX += this.stickerSize * this.columns;
+        for(let i = 0; i < this.faces; i++)
+        {
+          if(i != this.rotateFaceIndex)
+          {
+            this.drawFace(faceCoords[i][0], faceCoords[i][1], i, faceBorder, this.stickers, false, false);
+          }
+        }
+        this.animateEdgeRotation(this.rotateFaceIndex, faceCoords);
+
+        this.animateFaceRotation(this.rotateFaceIndex, faceCoords);
+
+        for(let i = 0; i < this.faces; i++)
+        {
+          if(i != this.rotateFaceIndex)
+          {
+            this.drawFace(faceCoords[i][0], faceCoords[i][1], i, faceBorder, null, this.showCoord, this.showLabel);
+          }
+        }
+
+        //draw a static cube on top again to cover up graphics glitch caused by animateEdgeRotation
+        //also border is bit glitchy too...
+        if(!this.animating)
+        {
+          for(let i = 0; i < this.faces; i++)
+            this.drawFace(faceCoords[i][0], faceCoords[i][1], i, faceBorder, this.stickers, this.showCoord, this.showLabel);
+          noLoop();
+        }
       }
-
-      faceX = this.topLeftX + this.columns * this.stickerSize;
-      faceY += this.stickerSize * this.rows;
-
-      this.drawFace(faceX, faceY, 5);
+      else
+      {
+        for(let i = 0; i < this.faces; i++)
+          this.drawFace(faceCoords[i][0], faceCoords[i][1], i, faceBorder, this.stickers, this.showCoord, this.showLabel);
+      }
     }
   }
 
-  drawFace(startX, startY, faceIndex)
+  animateFaceRotation(faceIndex, faceCoords)
   {
-    //Not very generous here, won't work if faceIndex is 0.5.
-    //Maybe should convert faceIndex to int, that would need Math.floor().
-    //But too much effort...zzz
+    let faceBorder = this.faceBorder;
+
+    let faceX = faceCoords[faceIndex][0];
+    let faceY = faceCoords[faceIndex][1];
+
+    let centreX = faceBorder + this.stickerSize*3/2;
+    let centreY = faceBorder + this.stickerSize*3/2;
+
+    push();
+    translate(faceX+centreX, faceY+centreY);
+
+    if(Math.abs(this.currentRotation) < Math.abs(this.targetRotation))
+    {
+      rotate(this.currentRotation);
+      let rotationDirection = this.targetRotation >= 0 ? 1 : -1;
+      this.currentRotation += this.rotationSpeed * rotationDirection;
+    }
+    else
+    {
+      this.animating = false;
+      this.previousStickers = RCF.copy2DArray(this.stickers);
+    }
+
+    this.drawFace(-centreX, -centreY, faceIndex, faceBorder, this.previousStickers, this.showCoord, this.showLabel);
+    pop();
+  }
+
+  animateEdgeRotation(faceIndex, faceCoords)
+  {
+    let faceLink = this.faceLinks[faceIndex];
+
+    let faceLinkColours = this.getFaceLinkColours(faceIndex, this.previousStickers);
+
+    //draw graphics with long edge strips
+    let edgeGraphicsIndex = 0;
+    let t = 0;
+    for(let t = 0; t < faceLink.length; t+=this.columns)
+    {
+      let edgeGraphic = this.edgeGraphics[edgeGraphicsIndex];
+
+      let s = t - 3;
+      let drawX = 0;
+
+      //draw that strip starting from 0, should be easier to transform instead of working out where to start drawing
+      for(let i = 0; i < this.columns * 3; i++)
+      {
+        edgeGraphic.strokeWeight(1);
+        edgeGraphic.fill(faceLinkColours[RCF.mod(s, faceLinkColours.length)]);
+        edgeGraphic.alpha
+        edgeGraphic.square(drawX, 0, this.stickerSize);
+
+        drawX += this.stickerSize;
+        s++;
+      }
+
+      let tPlus0Coord = this.indexToCoord(faceLink[t][0], faceLink[t][1]);
+
+      let drawChangeX = faceLink[t+1][1] - faceLink[t][1];
+      let drawChangeY = faceLink[t+1][0] - faceLink[t][0];
+
+      let imageW = this.stickerSize * this.columns;
+      let imageH = this.stickerSize;
+
+      let imageStartX = this.stickerSize * this.columns;
+      let imageStartY = 0;
+
+      let moveDirection = this.targetRotation > 0 ? -1 : 1;
+      let moveRatio = this.currentRotation/this.targetRotation;
+      let moveBy = Math.round(imageW * moveDirection * moveRatio);
+
+      let moveToX = tPlus0Coord[0]+this.faceBorder;
+      let moveToY = tPlus0Coord[1]+this.faceBorder;
+
+      let rotateImageBy = 0;
+      if(drawChangeX != 0)
+        rotateImageBy = drawChangeX > 0 ? 0 : 180;
+
+      if(drawChangeY != 0)
+        rotateImageBy = drawChangeY > 0 ? 90 : -90;
+
+      push();
+      translate(moveToX, moveToY);
+      translate(imageH/2, imageH/2);
+      rotate(rotateImageBy);
+      translate(-imageH/2, -imageH/2);
+      image(edgeGraphic, 0, 0, imageW, imageH, imageStartX + moveBy, imageStartY, imageW, imageH);
+
+      pop();
+
+      edgeGraphicsIndex++;
+    }
+  }
+
+  static mod(n, m)
+  {
+    return ((n % m) + m) % m;
+  }
+
+  drawFace(startX, startY, faceIndex, faceBorder, stickers, showCoord = false, showLabel = false)
+  {
     if(Number.isInteger(faceIndex) && 0 <= faceIndex && faceIndex < this.faces)
     {
       let x = startX;
       let y = startY;
 
+      if(stickers)
+      {
+        push();
+        fill(0);
+        square(x, y, this.stickerSize*3+faceBorder*2);
+        pop();
+      }
+
+      x += faceBorder;
+      startX = x;
+      y += faceBorder;
+
       let startColumn = this.columns * faceIndex;
-      
+
       for(let row = 0; row < this.rows; row++)
       {
         for(let column = startColumn; column < startColumn+this.columns; column++)
         {
-          push();
-          fill(this.stickers[row][column]);
-          square(x, y, this.stickerSize);
-          pop();
+          if(stickers)
+          {
+            push();
+            fill(stickers[row][column]);
+            square(x, y, this.stickerSize);
+            pop();
+          }
 
-          if(this.showLabel)
+          if(showLabel)
           {
             push();
             textAlign(CENTER, CENTER);
@@ -336,7 +522,7 @@ class RCF
             pop();
           }
 
-          if(this.showCoord)
+          if(showCoord)
           {
             push();
             textAlign(CENTER, CENTER);
@@ -361,17 +547,6 @@ class RCF
   print()
   {
     console.table(this.stickers);
-  }
-
-  move(index)
-  {
-    this.rotate(this.moves[index][0], this.moves[index][1]);
-  }
-  
-  undoMove(index)
-  {
-    //console.log(index);
-    this.rotate(this.undoMoves[index][0], this.undoMoves[index][1]);
   }
 
   rotate(faceIndex, clockwise = true)
@@ -492,24 +667,9 @@ class RCF
 
   solve()
   {
+    this.animating = false;
     if(this.solver)
       this.solver.solve(this);
-  }
-
-  applyMoves(moves)
-  {
-    for(let i = 0; moves && i < moves.length; i++)
-    {
-      this.move(moves[i]);
-    }
-  } 
-
-  applyUndoMoves(moves)
-  {
-    for(let i = moves.length-1; i >= 0; i--)
-    {
-      this.undoMove(moves[i]);
-    }
   }
 
   static copyStickers(cube1, cube2)
